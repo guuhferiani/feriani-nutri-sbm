@@ -1,32 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="brandGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#059669" />
       <stop offset="50%" stop-color="#10b981" />
       <stop offset="100%" stop-color="#14b8a6" />
     </linearGradient>
-    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="leafGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#ffffff" />
       <stop offset="100%" stop-color="#ecfdf5" />
     </linearGradient>
-    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+    <filter id="dropShadow512" x="-10%" y="-10%" width="120%" height="120%">
       <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#065f46" flood-opacity="0.25" />
     </filter>
   </defs>
 
-  <!-- Background container with rounded corners -->
-  <rect width="512" height="512" rx="128" fill="url(#brandGrad)" />
-  
-  <!-- Subtle inner glow / decorative circle -->
+  <rect width="512" height="512" rx="128" fill="url(#brandGrad512)" />
   <circle cx="256" cy="256" r="180" fill="none" stroke="rgba(255, 255, 255, 0.12)" stroke-width="8" />
 
-  <!-- Lucide-style Stylized Leaf Icon -->
-  <g filter="url(#dropShadow)" transform="translate(106, 106) scale(12.5)">
-    <!-- Path representing the leaf outline and spine -->
+  <g filter="url(#dropShadow512)" transform="translate(106, 106) scale(12.5)">
     <path 
       d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" 
       fill="none" 
-      stroke="url(#leafGrad)" 
+      stroke="url(#leafGrad512)" 
       stroke-width="2.2" 
       stroke-linecap="round" 
       stroke-linejoin="round" 
@@ -34,7 +29,7 @@
     <path 
       d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" 
       fill="none" 
-      stroke="url(#leafGrad)" 
+      stroke="url(#leafGrad512)" 
       stroke-width="2.2" 
       stroke-linecap="round" 
       stroke-linejoin="round" 

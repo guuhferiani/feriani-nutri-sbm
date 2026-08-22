@@ -9,6 +9,7 @@ import {
   Database
 } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
+import { InstallPWAButton } from './InstallPWAButton';
 import type { AuthUser } from '../types/auth';
 
 interface SidebarProps {
@@ -159,6 +160,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               );
             })}
           </nav>
+
+          {/* PWA Install Button */}
+          <div className="px-3 pb-2">
+            <InstallPWAButton />
+          </div>
 
           {/* Realtime Database badge */}
           <div className="p-4 mx-3 mb-3 rounded-xl bg-gradient-to-br from-slate-50 to-emerald-50/40 border border-slate-200/60 text-slate-600">
