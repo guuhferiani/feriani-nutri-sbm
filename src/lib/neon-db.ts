@@ -166,7 +166,7 @@ export async function getDashboardStats(nutricionistaId: string): Promise<Dashbo
 }
 
 /**
- * Fetch all patients for a nutritionist
+ * Fetch all patients for a nutritionist with their latest consultation date
  */
 export async function getPacientes(nutricionistaId: string, search?: string): Promise<Paciente[]> {
   try {
@@ -174,22 +174,44 @@ export async function getPacientes(nutricionistaId: string, search?: string): Pr
     if (search && search.trim()) {
       const term = `%${search.trim().toLowerCase()}%`;
       result = await sql`
-        SELECT *
-        FROM pacientes
-        WHERE nutricionista_id = ${nutricionistaId}
+        SELECT 
+          p.*,
+          latest_c.ultima_consulta::text AS ultima_consulta
+        FROM pacientes p
+        LEFT JOIN LATERAL (
+          SELECT c.data_consulta AS ultima_consulta
+          FROM consultas c
+          WHERE c.paciente_id = p.id
+          ORDER BY c.data_consulta DESC, c.created_at DESC
+          LIMIT 1
+        ) latest_c ON true
+        WHERE p.nutricionista_id = ${nutricionistaId}
           AND (
-            LOWER(nome) LIKE ${term} OR 
-            LOWER(email) LIKE ${term} OR 
-            telefone LIKE ${term}
+            LOWER(p.nome) LIKE ${term} OR 
+            LOWER(COALESCE(p.email, '')) LIKE ${term} OR 
+            COALESCE(p.telefone, '') LIKE ${term} OR
+            EXISTS (
+              SELECT 1 FROM unnest(p.objetivos) AS obj 
+              WHERE LOWER(obj) LIKE ${term}
+            )
           )
-        ORDER BY nome ASC;
+        ORDER BY p.nome ASC;
       `;
     } else {
       result = await sql`
-        SELECT *
-        FROM pacientes
-        WHERE nutricionista_id = ${nutricionistaId}
-        ORDER BY created_at DESC;
+        SELECT 
+          p.*,
+          latest_c.ultima_consulta::text AS ultima_consulta
+        FROM pacientes p
+        LEFT JOIN LATERAL (
+          SELECT c.data_consulta AS ultima_consulta
+          FROM consultas c
+          WHERE c.paciente_id = p.id
+          ORDER BY c.data_consulta DESC, c.created_at DESC
+          LIMIT 1
+        ) latest_c ON true
+        WHERE p.nutricionista_id = ${nutricionistaId}
+        ORDER BY p.created_at DESC;
       `;
     }
 
@@ -344,6 +366,86 @@ export async function createPaciente(paciente: {
   `;
 
   return res[0] as Paciente;
+}
+
+/**
+ * Update an existing patient in Neon (CRUD: Update)
+ */
+export async function updatePaciente(
+  pacienteId: string,
+  nutricionistaId: string,
+  paciente: Partial<Paciente>
+): Promise<Paciente> {
+  try {
+    const res = await sql`
+      UPDATE pacientes
+      SET
+        nome = ${paciente.nome !== undefined ? paciente.nome : sql`nome`},
+        data_nascimento = ${paciente.data_nascimento !== undefined ? paciente.data_nascimento : sql`data_nascimento`},
+        sexo = ${paciente.sexo !== undefined ? paciente.sexo : sql`sexo`},
+        telefone = ${paciente.telefone !== undefined ? paciente.telefone : sql`telefone`},
+        whatsapp = ${paciente.whatsapp !== undefined ? paciente.whatsapp : sql`whatsapp`},
+        email = ${paciente.email !== undefined ? paciente.email : sql`email`},
+        peso_inicial = ${paciente.peso_inicial !== undefined ? paciente.peso_inicial : sql`peso_inicial`},
+        altura = ${paciente.altura !== undefined ? paciente.altura : sql`altura`},
+        objetivos = ${paciente.objetivos !== undefined ? paciente.objetivos : sql`objetivos`},
+        objetivo_texto = ${paciente.objetivo_texto !== undefined ? paciente.objetivo_texto : sql`objetivo_texto`},
+        nivel_atividade = ${paciente.nivel_atividade !== undefined ? paciente.nivel_atividade : sql`nivel_atividade`},
+        patologias = ${paciente.patologias !== undefined ? paciente.patologias : sql`patologias`},
+        restricoes_alimentares = ${paciente.restricoes_alimentares !== undefined ? paciente.restricoes_alimentares : sql`restricoes_alimentares`},
+        alergias = ${paciente.alergias !== undefined ? paciente.alergias : sql`alergias`},
+        medicamentos = ${paciente.medicamentos !== undefined ? paciente.medicamentos : sql`medicamentos`},
+        suplementos = ${paciente.suplementos !== undefined ? paciente.suplementos : sql`suplementos`},
+        refeicoes_por_dia = ${paciente.refeicoes_por_dia !== undefined ? paciente.refeicoes_por_dia : sql`refeicoes_por_dia`},
+        horario_acorda = ${paciente.horario_acorda !== undefined ? paciente.horario_acorda : sql`horario_acorda`},
+        horario_dorme = ${paciente.horario_dorme !== undefined ? paciente.horario_dorme : sql`horario_dorme`},
+        litros_agua = ${paciente.litros_agua !== undefined ? paciente.litros_agua : sql`litros_agua`},
+        atividade_fisica = ${paciente.atividade_fisica !== undefined ? paciente.atividade_fisica : sql`atividade_fisica`},
+        atividade_fisica_descricao = ${paciente.atividade_fisica_descricao !== undefined ? paciente.atividade_fisica_descricao : sql`atividade_fisica_descricao`},
+        observacoes = ${paciente.observacoes !== undefined ? paciente.observacoes : sql`observacoes`}
+      WHERE id = ${pacienteId} AND nutricionista_id = ${nutricionistaId}
+      RETURNING *;
+    `;
+
+    if (!res || res.length === 0) {
+      throw new Error('Paciente não encontrado ou não autorizado para atualização.');
+    }
+
+    return res[0] as Paciente;
+  } catch (error) {
+    console.error('Error updating paciente in Neon:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a patient and associated consultations in Neon (CRUD: Delete)
+ */
+export async function deletePaciente(
+  pacienteId: string,
+  nutricionistaId: string
+): Promise<void> {
+  try {
+    // 1. Delete associated consultations first
+    await sql`
+      DELETE FROM consultas 
+      WHERE paciente_id = ${pacienteId};
+    `;
+
+    // 2. Delete patient
+    const res = await sql`
+      DELETE FROM pacientes 
+      WHERE id = ${pacienteId} AND nutricionista_id = ${nutricionistaId}
+      RETURNING id;
+    `;
+
+    if (!res || res.length === 0) {
+      throw new Error('Paciente não encontrado ou não autorizado para exclusão.');
+    }
+  } catch (error) {
+    console.error('Error deleting paciente in Neon:', error);
+    throw error;
+  }
 }
 
 /**

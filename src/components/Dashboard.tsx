@@ -5,11 +5,11 @@ import {
   CheckCircle2 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Sidebar } from './Sidebar';
+import { Sidebar, type AppView } from './Sidebar';
 import { DashboardView } from './DashboardView';
 import { PatientsList } from './PatientsList';
-import { PatientProfileModal } from './PatientProfileModal';
-import { NewPatientModal } from './NewPatientModal';
+import { NewPatientForm } from './NewPatientForm';
+import { PatientProfileView } from './PatientProfileView';
 import { NewConsultationModal } from './NewConsultationModal';
 import { BrandLogo } from './BrandLogo';
 import { 
@@ -21,7 +21,7 @@ import type { DashboardStats, Nutricionista, Paciente } from '../types/database'
 
 export const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const [currentView, setCurrentView] = useState<'dashboard' | 'pacientes'>('dashboard');
+  const [currentView, setCurrentView] = useState<AppView>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Neon DB states
@@ -32,9 +32,8 @@ export const Dashboard: React.FC = () => {
   const [seedingDemo, setSeedingDemo] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Modals state
+  // Patient Selection & Modal states
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-  const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
   const [isNewConsultationModalOpen, setIsNewConsultationModalOpen] = useState(false);
   const [consultationTargetPatientId, setConsultationTargetPatientId] = useState<string | undefined>(undefined);
 
@@ -104,11 +103,21 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  // Navigation handlers
+  const handleNavigateToNewPatient = () => {
+    setCurrentView('novo-paciente');
+  };
+
+  const handleSelectPatient = (patientId: string) => {
+    setSelectedPatientId(patientId);
+    setCurrentView('paciente-perfil');
+  };
+
   const handlePatientCreated = (newPatient: Paciente) => {
-    setIsNewPatientModalOpen(false);
     showToast(`Paciente "${newPatient.nome}" cadastrado com sucesso!`);
     loadStats();
     setSelectedPatientId(newPatient.id);
+    setCurrentView('paciente-perfil');
   };
 
   const handleConsultationCreated = () => {
@@ -139,7 +148,7 @@ export const Dashboard: React.FC = () => {
         onNavigate={setCurrentView}
         user={user}
         onLogout={logout}
-        onOpenNewPatient={() => setIsNewPatientModalOpen(true)}
+        onOpenNewPatient={handleNavigateToNewPatient}
         onOpenNewConsultation={() => handleOpenNewConsultation()}
         isOpenMobile={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
@@ -161,57 +170,61 @@ export const Dashboard: React.FC = () => {
 
         {/* Page Container */}
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {currentView === 'dashboard' ? (
+          {currentView === 'dashboard' && (
             <DashboardView
               user={user}
               stats={stats}
               loading={loadingStats}
               error={statsError}
               onRefresh={loadStats}
-              onSelectPatient={(id) => setSelectedPatientId(id)}
+              onSelectPatient={handleSelectPatient}
               onNavigateToPatients={() => setCurrentView('pacientes')}
-              onOpenNewPatient={() => setIsNewPatientModalOpen(true)}
+              onOpenNewPatient={handleNavigateToNewPatient}
               onOpenNewConsultation={() => handleOpenNewConsultation()}
               onSeedDemoData={handleSeedDemoData}
               seedingDemo={seedingDemo}
             />
-          ) : (
+          )}
+
+          {currentView === 'pacientes' && (
             <PatientsList
               nutricionistaId={nutricionista?.id || user?.id || ''}
-              onSelectPatient={(id) => setSelectedPatientId(id)}
-              onOpenNewPatient={() => setIsNewPatientModalOpen(true)}
+              onSelectPatient={handleSelectPatient}
+              onOpenNewPatient={handleNavigateToNewPatient}
               onOpenNewConsultation={handleOpenNewConsultation}
+            />
+          )}
+
+          {currentView === 'novo-paciente' && (
+            <NewPatientForm
+              nutricionistaId={nutricionista?.id || user?.id || ''}
+              onCancel={() => setCurrentView('pacientes')}
+              onSuccess={handlePatientCreated}
+            />
+          )}
+
+          {currentView === 'paciente-perfil' && selectedPatientId && (
+            <PatientProfileView
+              patientId={selectedPatientId}
+              nutricionistaId={nutricionista?.id || user?.id || ''}
+              onBackToList={() => setCurrentView('pacientes')}
+              onOpenNewConsultation={handleOpenNewConsultation}
+              onPatientUpdated={() => loadStats()}
+              onPatientDeleted={() => {
+                setSelectedPatientId(null);
+                setCurrentView('pacientes');
+                loadStats();
+              }}
+              showToast={showToast}
             />
           )}
         </main>
       </div>
 
-      {/* Modal: Patient Profile Details */}
-      {selectedPatientId && nutricionista?.id && (
-        <PatientProfileModal
-          patientId={selectedPatientId}
-          nutricionistaId={nutricionista.id}
-          onClose={() => setSelectedPatientId(null)}
-          onOpenNewConsultation={(pId) => {
-            setSelectedPatientId(null);
-            handleOpenNewConsultation(pId);
-          }}
-        />
-      )}
-
-      {/* Modal: Add New Patient */}
-      {isNewPatientModalOpen && nutricionista?.id && (
-        <NewPatientModal
-          nutricionistaId={nutricionista.id}
-          onClose={() => setIsNewPatientModalOpen(false)}
-          onSuccess={handlePatientCreated}
-        />
-      )}
-
       {/* Modal: Add New Consultation */}
-      {isNewConsultationModalOpen && nutricionista?.id && (
+      {isNewConsultationModalOpen && (nutricionista?.id || user?.id) && (
         <NewConsultationModal
-          nutricionistaId={nutricionista.id}
+          nutricionistaId={nutricionista?.id || user?.id || ''}
           defaultPatientId={consultationTargetPatientId}
           onClose={() => {
             setIsNewConsultationModalOpen(false);

@@ -32,7 +32,11 @@ export interface Paciente {
   atividade_fisica_descricao?: string | null;
   observacoes?: string | null;
   created_at: string;
+  ultima_consulta?: string | null;
+  total_consultas?: number | null;
 }
+
+export type PacienteInput = Omit<Paciente, 'id' | 'created_at' | 'ultima_consulta' | 'total_consultas'>;
 
 export interface Consulta {
   id: string;

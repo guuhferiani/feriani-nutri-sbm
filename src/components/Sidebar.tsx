@@ -12,9 +12,11 @@ import { BrandLogo } from './BrandLogo';
 import { InstallPWAButton } from './InstallPWAButton';
 import type { AuthUser } from '../types/auth';
 
+export type AppView = 'dashboard' | 'pacientes' | 'novo-paciente' | 'paciente-perfil';
+
 interface SidebarProps {
-  currentView: 'dashboard' | 'pacientes';
-  onNavigate: (view: 'dashboard' | 'pacientes') => void;
+  currentView: AppView;
+  onNavigate: (view: AppView) => void;
   user: AuthUser | null;
   onLogout: () => void;
   onOpenNewPatient: () => void;
