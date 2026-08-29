@@ -48,16 +48,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   const firstName = user?.name ? user.name.split(' ')[0] : 'Nutricionista';
 
-  const formatBrazilianDate = (dateStr?: string | null) => {
-    if (!dateStr) return '';
+  const formatBrazilianDate = (dateVal?: any) => {
+    if (!dateVal) return '';
     try {
-      const parts = dateStr.split('T')[0].split('-');
+      let str = '';
+      if (dateVal instanceof Date) {
+        if (isNaN(dateVal.getTime())) return '';
+        str = dateVal.toISOString().split('T')[0];
+      } else {
+        str = String(dateVal).split('T')[0];
+      }
+      const parts = str.split('-');
       if (parts.length === 3) {
         return `${parts[2]}/${parts[1]}/${parts[0]}`;
       }
-      return dateStr;
+      return str;
     } catch {
-      return dateStr;
+      return String(dateVal);
     }
   };
 

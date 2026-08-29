@@ -153,9 +153,15 @@ export const NewPatientForm: React.FC<NewPatientFormProps> = ({
   // Automatic Age calculation
   const idade = useMemo(() => {
     if (!dataNascimento) return null;
-    const parts = dataNascimento.split('-');
-    if (parts.length !== 3) return null;
-    const birth = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    let birth: Date;
+    if ((dataNascimento as any) instanceof Date) {
+      birth = dataNascimento as any;
+    } else {
+      const str = String(dataNascimento).split('T')[0];
+      const parts = str.split('-');
+      if (parts.length !== 3) return null;
+      birth = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    }
     if (isNaN(birth.getTime())) return null;
     const today = new Date();
     let age = today.getFullYear() - birth.getFullYear();

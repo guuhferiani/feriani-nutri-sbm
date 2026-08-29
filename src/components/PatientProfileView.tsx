@@ -130,24 +130,35 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
     fetchDetails();
   }, [patientId, nutricionistaId]);
 
-  const formatBrazilianDate = (dateStr?: string | null) => {
-    if (!dateStr) return '-';
-    try {
-      const parts = dateStr.split('T')[0].split('-');
-      if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-      }
-      return dateStr;
-    } catch {
-      return dateStr;
+  const normalizeDateStr = (dateVal?: any): string => {
+    if (!dateVal) return '';
+    if (dateVal instanceof Date) {
+      if (isNaN(dateVal.getTime())) return '';
+      return dateVal.toISOString().split('T')[0];
     }
+    const s = String(dateVal);
+    if (s.includes('T')) return s.split('T')[0];
+    return s;
   };
 
-  const calculateAge = (birthDateStr?: string | null): number | null => {
-    if (!birthDateStr) return null;
-    const parts = birthDateStr.split('T')[0].split('-');
+  const formatBrazilianDate = (dateVal?: any) => {
+    if (!dateVal) return '-';
+    const str = normalizeDateStr(dateVal);
+    if (!str) return '-';
+    const parts = str.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return str;
+  };
+
+  const calculateAge = (birthDateVal?: any): number | null => {
+    if (!birthDateVal) return null;
+    const str = normalizeDateStr(birthDateVal);
+    if (!str) return null;
+    const parts = str.split('-');
     if (parts.length !== 3) return null;
-    const birth = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    const birth = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
     if (isNaN(birth.getTime())) return null;
     const today = new Date();
     let age = today.getFullYear() - birth.getFullYear();
@@ -926,7 +937,7 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
                   </label>
                   <input
                     type="date"
-                    value={editForm.data_nascimento?.split('T')[0] || ''}
+                    value={normalizeDateStr(editForm.data_nascimento)}
                     onChange={(e) => setEditForm({ ...editForm, data_nascimento: e.target.value })}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                   />

@@ -166,6 +166,69 @@ export async function getDashboardStats(nutricionistaId: string): Promise<Dashbo
 }
 
 /**
+ * Helper to normalize and format a raw Paciente row from Postgres
+ */
+function formatPacienteRow(row: any): Paciente {
+  if (!row) return row;
+  let dataNascimentoStr: string | null = null;
+  if (row.data_nascimento) {
+    if (row.data_nascimento instanceof Date) {
+      dataNascimentoStr = row.data_nascimento.toISOString().split('T')[0];
+    } else {
+      dataNascimentoStr = String(row.data_nascimento).split('T')[0];
+    }
+  }
+
+  let createdAtStr = new Date().toISOString();
+  if (row.created_at) {
+    if (row.created_at instanceof Date) {
+      createdAtStr = row.created_at.toISOString();
+    } else {
+      createdAtStr = String(row.created_at);
+    }
+  }
+
+  let ultimaConsultaStr: string | null = null;
+  if (row.ultima_consulta) {
+    if (row.ultima_consulta instanceof Date) {
+      ultimaConsultaStr = row.ultima_consulta.toISOString().split('T')[0];
+    } else {
+      ultimaConsultaStr = String(row.ultima_consulta).split('T')[0];
+    }
+  }
+
+  return {
+    id: String(row.id),
+    nutricionista_id: String(row.nutricionista_id),
+    nome: row.nome,
+    data_nascimento: dataNascimentoStr,
+    sexo: row.sexo || null,
+    telefone: row.telefone || null,
+    whatsapp: row.whatsapp || null,
+    email: row.email || null,
+    peso_inicial: row.peso_inicial != null ? Number(row.peso_inicial) : null,
+    altura: row.altura != null ? Number(row.altura) : null,
+    objetivos: Array.isArray(row.objetivos) ? row.objetivos : [],
+    objetivo_texto: row.objetivo_texto || null,
+    nivel_atividade: row.nivel_atividade || null,
+    patologias: Array.isArray(row.patologias) ? row.patologias : [],
+    restricoes_alimentares: Array.isArray(row.restricoes_alimentares) ? row.restricoes_alimentares : [],
+    alergias: Array.isArray(row.alergias) ? row.alergias : [],
+    medicamentos: row.medicamentos || null,
+    suplementos: row.suplementos || null,
+    refeicoes_por_dia: row.refeicoes_por_dia != null ? Number(row.refeicoes_por_dia) : null,
+    horario_acorda: row.horario_acorda || null,
+    horario_dorme: row.horario_dorme || null,
+    litros_agua: row.litros_agua != null ? Number(row.litros_agua) : null,
+    atividade_fisica: Boolean(row.atividade_fisica),
+    atividade_fisica_descricao: row.atividade_fisica_descricao || null,
+    observacoes: row.observacoes || null,
+    created_at: createdAtStr,
+    ultima_consulta: ultimaConsultaStr,
+  };
+}
+
+/**
  * Fetch all patients for a nutritionist with their latest consultation date
  */
 export async function getPacientes(nutricionistaId: string, search?: string): Promise<Paciente[]> {
@@ -215,7 +278,7 @@ export async function getPacientes(nutricionistaId: string, search?: string): Pr
       `;
     }
 
-    return result as Paciente[];
+    return (result || []).map(formatPacienteRow);
   } catch (error) {
     console.error('Error fetching pacientes from Neon:', error);
     throw error;
@@ -272,7 +335,7 @@ export async function getPacienteDetails(
     }));
 
     return {
-      paciente: pacienteRes[0] as Paciente,
+      paciente: formatPacienteRow(pacienteRes[0]),
       consultas,
     };
   } catch (error) {
@@ -365,7 +428,7 @@ export async function createPaciente(paciente: {
     RETURNING *;
   `;
 
-  return res[0] as Paciente;
+  return formatPacienteRow(res[0]);
 }
 
 /**
@@ -411,7 +474,7 @@ export async function updatePaciente(
       throw new Error('Paciente não encontrado ou não autorizado para atualização.');
     }
 
-    return res[0] as Paciente;
+    return formatPacienteRow(res[0]);
   } catch (error) {
     console.error('Error updating paciente in Neon:', error);
     throw error;
