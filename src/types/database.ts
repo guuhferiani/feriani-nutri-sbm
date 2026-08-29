@@ -74,3 +74,16 @@ export interface DashboardStats {
   consultasSemanaList: ConsultaComPaciente[];
   pacientesSemRetorno: PacienteSemRetorno[];
 }
+
+export interface PlanoAlimentar {
+  id: string;
+  paciente_id: string;
+  conteudo: any;
+  created_at: string;
+}
+
+export interface PacienteDetails {
+  paciente: Paciente;
+  consultas: Consulta[];
+  planos: PlanoAlimentar[];
+}

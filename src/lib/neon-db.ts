@@ -5,7 +5,8 @@ import type {
   Consulta, 
   ConsultaComPaciente, 
   PacienteSemRetorno, 
-  DashboardStats 
+  DashboardStats,
+  PlanoAlimentar
 } from '../types/database';
 import type { AuthUser } from '../types/auth';
 
@@ -291,7 +292,7 @@ export async function getPacientes(nutricionistaId: string, search?: string): Pr
 export async function getPacienteDetails(
   pacienteId: string, 
   nutricionistaId: string
-): Promise<{ paciente: Paciente; consultas: Consulta[] } | null> {
+): Promise<{ paciente: Paciente; consultas: Consulta[]; planos: PlanoAlimentar[] } | null> {
   try {
     const pacienteRes = await sql`
       SELECT *
@@ -334,13 +335,59 @@ export async function getPacienteDetails(
       created_at: c.created_at,
     }));
 
+    let planos: PlanoAlimentar[] = [];
+    try {
+      const planosRes = await sql`
+        SELECT 
+          id,
+          paciente_id,
+          conteudo,
+          created_at::text
+        FROM planos_alimentares
+        WHERE paciente_id = ${pacienteId}
+        ORDER BY created_at DESC;
+      `;
+      planos = (planosRes || []).map((p: any) => ({
+        id: p.id,
+        paciente_id: p.paciente_id,
+        conteudo: p.conteudo,
+        created_at: p.created_at instanceof Date ? p.created_at.toISOString() : String(p.created_at || new Date().toISOString()),
+      }));
+    } catch (errPlanos) {
+      console.warn('planos_alimentares table query notice:', errPlanos);
+    }
+
     return {
       paciente: formatPacienteRow(pacienteRes[0]),
       consultas,
+      planos,
     };
   } catch (error) {
     console.error('Error fetching paciente details from Neon:', error);
     throw error;
+  }
+}
+
+/**
+ * Fetch all meal plans for a patient
+ */
+export async function getPlanosAlimentares(pacienteId: string): Promise<PlanoAlimentar[]> {
+  try {
+    const res = await sql`
+      SELECT id, paciente_id, conteudo, created_at::text
+      FROM planos_alimentares
+      WHERE paciente_id = ${pacienteId}
+      ORDER BY created_at DESC;
+    `;
+    return (res || []).map((p: any) => ({
+      id: p.id,
+      paciente_id: p.paciente_id,
+      conteudo: p.conteudo,
+      created_at: p.created_at instanceof Date ? p.created_at.toISOString() : String(p.created_at || new Date().toISOString()),
+    }));
+  } catch (error) {
+    console.error('Error fetching planos alimentares from Neon:', error);
+    return [];
   }
 }
 

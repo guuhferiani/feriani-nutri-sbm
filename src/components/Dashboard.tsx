@@ -120,9 +120,12 @@ export const Dashboard: React.FC = () => {
     setCurrentView('paciente-perfil');
   };
 
+  const [profileRefreshKey, setProfileRefreshKey] = useState(0);
+
   const handleConsultationCreated = () => {
     setIsNewConsultationModalOpen(false);
     setConsultationTargetPatientId(undefined);
+    setProfileRefreshKey((prev) => prev + 1);
     showToast('Consulta registrada com sucesso no Neon!');
     loadStats();
   };
@@ -205,6 +208,7 @@ export const Dashboard: React.FC = () => {
 
           {currentView === 'paciente-perfil' && selectedPatientId && (
             <PatientProfileView
+              key={`${selectedPatientId}-${profileRefreshKey}`}
               patientId={selectedPatientId}
               nutricionistaId={nutricionista?.id || user?.id || ''}
               onBackToList={() => setCurrentView('pacientes')}
