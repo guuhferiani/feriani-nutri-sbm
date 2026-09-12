@@ -14,17 +14,24 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     // Check if URL has a reset token or query param
     const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
     const token = params.get('token');
     
     // Also check hash in case Neon Auth returns token in fragment
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     const hashToken = hashParams.get('token');
-
     const effectiveToken = token || hashToken;
 
-    if (effectiveToken) {
+    // Reset password only when action is explicitly reset-password
+    if (action === 'reset-password' && effectiveToken) {
       setResetToken(effectiveToken);
       setAuthView('reset-password');
+    } else if (effectiveToken) {
+      // If token arrived without reset-password action (e.g., from Magic Link session)
+      localStorage.setItem('feriani_nutri_auth_token', effectiveToken);
+      // Clean query parameters from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      window.location.reload();
     }
   }, []);
 

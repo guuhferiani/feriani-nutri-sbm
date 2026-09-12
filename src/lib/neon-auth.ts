@@ -95,13 +95,20 @@ export async function neonSignOut(): Promise<void> {
   }
 }
 
-export async function neonGetSession(): Promise<{ user: AuthUser; session?: any } | null> {
+export async function neonGetSession(token?: string): Promise<{ user: AuthUser; session?: any } | null> {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    const effectiveToken = token || (typeof window !== 'undefined' ? localStorage.getItem('feriani_nutri_auth_token') : null);
+    if (effectiveToken) {
+      headers['Authorization'] = `Bearer ${effectiveToken}`;
+    }
+
     const response = await fetch(`${NEON_AUTH_BASE_URL}/get-session`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
     });
 
