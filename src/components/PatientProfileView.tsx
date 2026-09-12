@@ -6,7 +6,6 @@ import {
   Calendar, 
   MessageCircle, 
   AlertCircle, 
-  Sparkles, 
   Loader2, 
   Save, 
   User, 
@@ -14,8 +13,6 @@ import {
   Utensils, 
   Check, 
   X, 
-  FileText, 
-  Eye, 
   CalendarCheck 
 } from 'lucide-react';
 import { 
@@ -24,6 +21,7 @@ import {
   deletePaciente 
 } from '../lib/neon-db';
 import { WeightEvolutionChart } from './WeightEvolutionChart';
+import { MealPlanManager } from './MealPlanManager';
 import type { Paciente, Consulta, PlanoAlimentar } from '../types/database';
 
 interface PatientProfileViewProps {
@@ -110,8 +108,6 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
-  // Plan viewer modal state (Section 3)
-  const [selectedPlano, setSelectedPlano] = useState<PlanoAlimentar | null>(null);
 
   // Delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -1319,133 +1315,12 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
       {/* SEÇÃO 3 — PLANOS ALIMENTARES */}
       {/* ========================================================================= */}
       {mainSection === 'planos' && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-6 animate-in fade-in duration-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">
-                Planos Alimentares & Dietas
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Histórico de planos nutricionais calculados e gerados para o paciente.
-              </p>
-            </div>
-
-            {/* Prominent "Gerar Plano Alimentar" button as required by Prompt 5 */}
-            <button
-              type="button"
-              onClick={() => showToast('A funcionalidade de geração automática por IA será habilitada no Prompt 6.')}
-              className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-2 cursor-pointer transition-all self-start sm:self-auto group"
-            >
-              <Sparkles className="w-4 h-4 text-emerald-200 group-hover:scale-110 transition-transform" />
-              <span>Gerar Plano Alimentar</span>
-            </button>
-          </div>
-
-          {/* History of Saved Plans */}
-          {planos.length === 0 ? (
-            <div className="py-14 px-6 text-center bg-slate-50/70 rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center gap-3">
-              <div className="w-14 h-14 rounded-2xl bg-white text-slate-400 flex items-center justify-center shadow-2xs border border-slate-100">
-                <Utensils className="w-7 h-7 stroke-[1.6]" />
-              </div>
-              <div className="space-y-1 max-w-sm">
-                <h4 className="text-sm font-bold text-slate-800">
-                  Nenhum plano alimentar gerado ainda
-                </h4>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Utilize o botão "Gerar Plano Alimentar" para criar e salvar cardápios personalizados no prontuário do paciente.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {planos.map((plano, idx) => (
-                <div
-                  key={plano.id}
-                  onClick={() => setSelectedPlano(plano)}
-                  className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-emerald-300 hover:shadow-xs transition-all cursor-pointer flex items-center justify-between group"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <strong className="text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                          Plano Alimentar #{planos.length - idx}
-                        </strong>
-                        {idx === 0 && (
-                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
-                            Ativo
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-xs text-slate-400 mt-0.5 block">
-                        Gerado em {formatBrazilianDate(plano.created_at)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 group-hover:translate-x-0.5 transition-transform">
-                    <Eye className="w-4 h-4" />
-                    <span>Ver Conteúdo Completo</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Plan Content Viewer Modal */}
-      {selectedPlano && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-emerald-50/40">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                  <Utensils className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    Plano Alimentar Detalhado
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Gerado em {formatBrazilianDate(selectedPlano.created_at)}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedPlano(null)}
-                className="p-2 text-slate-400 hover:text-slate-700 rounded-xl transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs text-slate-800 leading-relaxed">
-              {typeof selectedPlano.conteudo === 'string' ? (
-                <div className="whitespace-pre-wrap font-mono p-4 bg-slate-50 rounded-2xl border border-slate-100 text-slate-800">
-                  {selectedPlano.conteudo}
-                </div>
-              ) : (
-                <pre className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-slate-800 overflow-x-auto text-[11px]">
-                  {JSON.stringify(selectedPlano.conteudo, null, 2)}
-                </pre>
-              )}
-            </div>
-
-            <div className="p-4 border-t border-slate-100 flex justify-end bg-slate-50/50">
-              <button
-                type="button"
-                onClick={() => setSelectedPlano(null)}
-                className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold cursor-pointer"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
+        <MealPlanManager
+          paciente={paciente}
+          planos={planos}
+          onPlanosUpdated={(updatedPlanos) => setPlanos(updatedPlanos)}
+          showToast={showToast}
+        />
       )}
 
       {/* Delete Confirmation Modal */}

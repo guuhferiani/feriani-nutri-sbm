@@ -379,17 +379,80 @@ export async function getPlanosAlimentares(pacienteId: string): Promise<PlanoAli
       WHERE paciente_id = ${pacienteId}
       ORDER BY created_at DESC;
     `;
-    return (res || []).map((p: any) => ({
-      id: p.id,
-      paciente_id: p.paciente_id,
-      conteudo: p.conteudo,
-      created_at: p.created_at instanceof Date ? p.created_at.toISOString() : String(p.created_at || new Date().toISOString()),
-    }));
+    return (res || []).map((p: any) => {
+      let parsedConteudo = p.conteudo;
+      if (typeof p.conteudo === 'string') {
+        try {
+          parsedConteudo = JSON.parse(p.conteudo);
+        } catch {
+          parsedConteudo = p.conteudo;
+        }
+      }
+      return {
+        id: p.id,
+        paciente_id: p.paciente_id,
+        conteudo: parsedConteudo,
+        created_at: p.created_at instanceof Date ? p.created_at.toISOString() : String(p.created_at || new Date().toISOString()),
+      };
+    });
   } catch (error) {
     console.error('Error fetching planos alimentares from Neon:', error);
     return [];
   }
 }
+
+/**
+ * Save a meal plan in Neon
+ */
+export async function savePlanoAlimentar(
+  pacienteId: string, 
+  conteudo: any
+): Promise<PlanoAlimentar> {
+  try {
+    const res = await sql`
+      INSERT INTO planos_alimentares (paciente_id, conteudo, created_at)
+      VALUES (${pacienteId}, ${JSON.stringify(conteudo)}, NOW())
+      RETURNING id, paciente_id, conteudo, created_at::text;
+    `;
+
+    const p = res[0];
+    let parsedConteudo = p.conteudo;
+    if (typeof p.conteudo === 'string') {
+      try {
+        parsedConteudo = JSON.parse(p.conteudo);
+      } catch {
+        parsedConteudo = p.conteudo;
+      }
+    }
+
+    return {
+      id: p.id,
+      paciente_id: p.paciente_id,
+      conteudo: parsedConteudo,
+      created_at: p.created_at instanceof Date ? p.created_at.toISOString() : String(p.created_at || new Date().toISOString()),
+    };
+  } catch (error) {
+    console.error('Error saving plano alimentar in Neon:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a meal plan by ID
+ */
+export async function deletePlanoAlimentar(planoId: string): Promise<boolean> {
+  try {
+    await sql`
+      DELETE FROM planos_alimentares
+      WHERE id = ${planoId};
+    `;
+    return true;
+  } catch (error) {
+    console.error('Error deleting plano alimentar from Neon:', error);
+    throw error;
+  }
+}
+
 
 /**
  * Create a new patient in Neon

@@ -22,6 +22,15 @@ export function getFriendlyErrorMessage(error: any): string {
   if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
     return 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet.';
   }
+  if (msg.includes('INVALID_TOKEN') || msg.includes('token') && msg.includes('invalid') || msg.includes('expired')) {
+    return 'O link de recuperação expirou ou é inválido. Por favor, solicite um novo link.';
+  }
+  if (msg.includes('USER_NOT_FOUND') || msg.includes('User not found')) {
+    return 'Não encontramos nenhuma conta com este e-mail.';
+  }
+  if (msg.includes('FAILED_TO_SEND_EMAIL') || msg.includes('Email sending failed')) {
+    return 'Não foi possível enviar o e-mail no momento. Verifique as configurações de SMTP.';
+  }
 
   return msg || 'Ocorreu um erro ao processar sua solicitação.';
 }
@@ -104,3 +113,90 @@ export async function neonGetSession(): Promise<{ user: AuthUser; session?: any 
     return null;
   }
 }
+
+/**
+ * Solicita envio de link de recuperação de senha por e-mail
+ */
+export async function neonForgotPassword(email: string): Promise<{ success: boolean; message?: string }> {
+  const origin = window.location.origin;
+  const redirectTo = `${origin}/?action=reset-password`;
+
+  const response = await fetch(`${NEON_AUTH_BASE_URL}/request-password-reset`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      email: email.trim().toLowerCase(),
+      redirectTo,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(getFriendlyErrorMessage(data));
+  }
+
+  return { success: true, message: data.message };
+}
+
+/**
+ * Define a nova senha com base no token recebido no link de recuperação
+ */
+export async function neonResetPassword(newPassword: string, token: string): Promise<{ success: boolean }> {
+  const response = await fetch(`${NEON_AUTH_BASE_URL}/reset-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      newPassword,
+      token,
+    }),
+  });
+
+  if (!response.ok) {
+    let errorData: any = {};
+    try {
+      errorData = await response.json();
+    } catch {
+      // ignore
+    }
+    throw new Error(getFriendlyErrorMessage(errorData));
+  }
+
+  return { success: true };
+}
+
+/**
+ * Envia um Magic Link (Link Mágico de acesso sem senha) para o e-mail do nutricionista
+ */
+export async function neonSignInWithMagicLink(email: string): Promise<{ success: boolean; message?: string }> {
+  const origin = window.location.origin;
+  const callbackURL = `${origin}/`;
+
+  const response = await fetch(`${NEON_AUTH_BASE_URL}/sign-in/magic-link`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      email: email.trim().toLowerCase(),
+      callbackURL,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(getFriendlyErrorMessage(data));
+  }
+
+  return { success: true, message: data.message };
+}
+
+

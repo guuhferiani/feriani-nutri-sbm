@@ -88,7 +88,7 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateToLogin }) => {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Dra. Mariana Silva"
+                placeholder="Mariana Silva"
                 required
                 className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
               />
